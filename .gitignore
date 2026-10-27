@@ -1,0 +1,21 @@
+# Dados pessoais de exportação, entradas e registros
+/data/
+/private/
+/work/
+/outputs/
+followers*.json
+following.json
+instagram-*.json
+instagram-*.zip
+*.csv
+
+# Artefatos e ambientes locais
+/dist/
+/node_modules/
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+.DS_Store
+Thumbs.db

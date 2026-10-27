@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Instagram Followback Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">FERRAMENTA LOCAL</div>
+      <h1>Quem não segue de volta</h1>
+      <p class="intro">Compare os arquivos da sua exportação e abra os perfis que quiser revisar.</p>
+    </header>
+
+    <section class="import-card" aria-labelledby="import-title">
+      <h2 id="import-title">Importar arquivos do Instagram</h2>
+      <label for="followers-file">Seguidores <span>todos os followers_*.json</span></label>
+      <input id="followers-file" type="file" accept=".json,application/json" multiple>
+      <label for="following-file">Seguindo <span>following.json</span></label>
+      <input id="following-file" type="file" accept=".json,application/json">
+      <button id="compare" class="primary" disabled>Comparar listas</button>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="results" hidden>
+      <div id="stats" class="stats"></div>
+      <p class="snapshot-note">A exportação é uma fotografia do momento em que foi criada. Confira o estado no Instagram antes de agir.</p>
+      <section class="automation-card" aria-labelledby="automation-title">
+        <h2 id="automation-title">Automatizar os unfollows</h2>
+        <div class="settings-grid" aria-label="Configurações de intervalo">
+          <label for="interval-seconds">Intervalo entre perfis <span>segundos</span></label>
+          <input id="interval-seconds" type="number" min="0" max="300" step="1" value="15">
+          <label for="rest-every">Pausa a cada <span>perfis; 0 desativa</span></label>
+          <input id="rest-every" type="number" min="0" max="5000" step="1" value="25">
+          <label for="rest-seconds">Duração da pausa <span>segundos; 0 desativa</span></label>
+          <input id="rest-seconds" type="number" min="0" max="3600" step="1" value="120">
+        </div>
+        <p class="settings-note">Padrão: 15 s entre perfis e pausa de 120 s a cada 25. Intervalos menores podem levar a bloqueio ou captcha; nesses casos, a fila para.</p>
+        <p class="automation-copy">Com o Instagram aberto e logado em outra aba, a extensão visita cada perfil da diferença e confirma “Deixar de seguir” automaticamente.</p>
+        <button id="start-run" class="danger" disabled>Iniciar automação</button>
+        <p id="automation-status" class="automation-status" role="status" aria-live="polite"></p>
+      </section>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Buscar @usuário" aria-label="Buscar usuário">
+        <button id="copy" class="secondary">Copiar pendentes</button>
+        <button id="csv" class="secondary">Baixar CSV</button>
+      </div>
+      <div class="progress-row">
+        <span id="progress-label">0 concluídos</span>
+        <button id="reset" class="text-button">Zerar progresso</button>
+      </div>
+      <ul id="users" class="users"></ul>
+    </section>
+
+    <footer>A extensão usa os arquivos locais e cliques normais na página do Instagram. Ela pula perfis com tela inesperada e para somente se detectar captcha, bloqueio ou pedido de login.</footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

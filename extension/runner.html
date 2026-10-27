@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Automação de unfollows</title>
+  <link rel="stylesheet" href="runner.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">INSTAGRAM FOLLOWBACK HELPER</div>
+      <h1>Automação de unfollows</h1>
+      <p id="status">Preparando…</p>
+    </header>
+    <section class="summary">
+      <div><strong id="processed">0</strong><span>verificados</span></div>
+      <div><strong id="confirmed">0</strong><span>unfollow(s) confirmados</span></div>
+      <div><strong id="total">0</strong><span>na fila</span></div>
+    </section>
+    <progress id="progress" max="1" value="0"></progress>
+    <div class="actions">
+      <button id="stop" class="stop">Parar após o perfil atual</button>
+      <button id="download" class="secondary">Baixar registro CSV</button>
+    </div>
+    <p class="note">Mantenha esta aba aberta. O Instagram fica na outra aba. Perfis com botão ou tela inesperada são registrados como pulados. A fila para somente se detectar captcha, bloqueio ou pedido de login.</p>
+    <h2>Atividade recente</h2>
+    <ol id="log"></ol>
+  </main>
+  <script src="runner.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: #202124;
+  background: #f7f7f9;
+}
+
+* { box-sizing: border-box; }
+body { width: 420px; min-height: 380px; max-height: 640px; margin: 0; overflow-y: auto; }
+main { padding: 20px; }
+header { margin: 0 0 16px; }
+.eyebrow { color: #8755d8; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+h1 { margin: 5px 0 6px; font-size: 21px; line-height: 1.2; }
+h2 { margin: 0 0 12px; font-size: 14px; }
+.intro { margin: 0; color: #5f6368; font-size: 12px; line-height: 1.45; }
+.import-card { padding: 14px; border: 1px solid #e1e2e6; border-radius: 12px; background: #fff; }
+label { display: flex; justify-content: space-between; margin: 12px 0 6px; font-size: 12px; font-weight: 700; }
+label span { color: #777b83; font-weight: 400; }
+input[type="file"] { width: 100%; padding: 8px; border: 1px solid #d9dbe1; border-radius: 7px; background: #fff; font-size: 11px; }
+button { border: 0; border-radius: 8px; cursor: pointer; font: inherit; }
+button:disabled { cursor: default; opacity: .5; }
+.primary { width: 100%; margin-top: 14px; padding: 10px; background: #7a3fe0; color: #fff; font-size: 13px; font-weight: 700; }
+.primary:hover:not(:disabled) { background: #6531c2; }
+.message { min-height: 14px; margin: 8px 0 0; color: #a13a35; font-size: 11px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 8px; }
+.stat { padding: 10px 8px; border: 1px solid #e1e2e6; border-radius: 9px; background: #fff; text-align: center; }
+.stat strong { display: block; color: #202124; font-size: 19px; }
+.stat span { color: #666a73; font-size: 10px; }
+.snapshot-note { margin: 8px 1px 10px; color: #7a5c20; font-size: 10px; line-height: 1.45; }
+.automation-card { margin: 10px 0 12px; padding: 12px; border: 1px solid #e5c8c8; border-radius: 10px; background: #fffafa; }
+.automation-card h2 { margin-bottom: 5px; }
+.automation-copy { margin: 0 0 8px; color: #5f6368; font-size: 10px; line-height: 1.45; }
+.settings-grid { display: grid; grid-template-columns: 1fr 92px; gap: 6px 8px; align-items: center; }
+.settings-grid label { display: block; margin: 0; font-size: 10px; }
+.settings-grid label span { display: block; margin-top: 2px; color: #777b83; font-size: 9px; }
+.settings-grid input { width: 100%; padding: 6px; border: 1px solid #d9dbe1; border-radius: 6px; font: inherit; font-size: 11px; }
+.settings-note { margin: 8px 0 2px; color: #7a5c20; font-size: 9px; line-height: 1.4; }
+.danger { width: 100%; margin-top: 8px; padding: 9px; background: #b43838; color: #fff; font-size: 12px; font-weight: 700; }
+.danger:hover:not(:disabled) { background: #922d2d; }
+.automation-status { margin: 7px 0 0; color: #666a73; font-size: 10px; line-height: 1.4; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; }
+input[type="search"] { flex: 1 1 100%; min-width: 0; padding: 8px 9px; border: 1px solid #d9dbe1; border-radius: 7px; font-size: 12px; }
+.secondary { padding: 7px 9px; border: 1px solid #d9dbe1; background: #fff; color: #333; font-size: 10px; }
+.secondary:hover { background: #f1eff8; }
+.progress-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px; color: #5f6368; font-size: 11px; }
+.text-button { padding: 2px 0; background: transparent; color: #6f42c1; font-size: 10px; }
+.users { max-height: 280px; overflow-y: auto; margin: 0; padding: 0; list-style: none; border-top: 1px solid #e6e7eb; }
+.user-row { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; padding: 9px 2px; border-bottom: 1px solid #e9eaee; }
+.user-row input { margin: 0; accent-color: #7a3fe0; }
+.user-row a { overflow: hidden; color: #25252b; font-size: 12px; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.user-row a:hover { color: #6f42c1; text-decoration: underline; }
+.user-row.done a { color: #8a8d94; text-decoration: line-through; }
+.open-link { color: #6f42c1 !important; font-size: 10px !important; text-decoration: none !important; }
+.empty { padding: 14px 4px; color: #6c7078; font-size: 12px; text-align: center; }
+footer { margin-top: 16px; color: #858891; font-size: 10px; line-height: 1.4; }
