@@ -289,14 +289,14 @@ function performFollowerRemoval(username, accountUsername) {
     }
     return null;
   };
-  const findTargetRow = (dialog) => {
+  const findTargetRow = (dialog, actionLabels = ["remover", "remove"]) => {
     for (const link of targetLinks(dialog)) {
       let row = link.parentElement;
       while (row && row !== dialog) {
         const names = new Set([...row.querySelectorAll("a[href]")].map(profileName).filter(Boolean));
         // Never walk up to a container with another user's Remove button.
         if (names.size !== 1 || !names.has(username)) break;
-        const remove = buttons(row).filter((button) => ["remover", "remove"].includes(labelOf(button)));
+        const remove = buttons(row).filter((button) => actionLabels.includes(labelOf(button)));
         if (remove.length === 1) return { row, remove: remove[0] };
         row = row.parentElement;
       }
@@ -304,6 +304,8 @@ function performFollowerRemoval(username, accountUsername) {
     return null;
   };
   const preservesFollowing = (row) => buttons(row).some((button) => ["seguindo", "following", "solicitado", "solicitada", "requested"].includes(labelOf(button)));
+  const removalNotices = () => [...document.querySelectorAll("[role='status'], [role='alert'], [aria-live]")]
+    .filter((element) => visible(element) && /\bseguidor(?:a)? removid[oa]\b|\bfollower removed\b/.test(labelOf(element)));
   const skipped = (detail) => ({ status: "skipped", detail });
   const guard = () => {
     const blocked = blockedReason();
@@ -473,19 +475,82 @@ function performFollowerRemoval(username, accountUsername) {
     if (preservesFollowing(currentTarget.row)) return { status: "now_following", detail: "Você passou a seguir ou solicitar este perfil; seguidor preservado." };
     failure = guard();
     if (failure) return failure;
+    const previousNoticeTexts = new Set(removalNotices().map(labelOf));
     confirm.click();
 
-    let absentChecks = 0;
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      await pause(500);
-      failure = guard();
-      if (failure) return failure;
+    const verificationGuard = () => {
+      const failure = guard();
+      return failure?.status === "skipped"
+        ? skipped("A página mudou após a confirmação; não consegui verificar a remoção.") : failure;
+    };
+    const completionEvidence = () => {
+      // React may replace a still-open confirmation; do not rely on the old node.
+      if (removalConfirmation(followerDialog() || list)) return "";
+      if (removalNotices().some((notice) => !previousNoticeTexts.has(labelOf(notice)))) {
+        return "O Instagram exibiu um novo aviso de seguidor removido.";
+      }
       const current = refreshSearch();
-      const removed = current && !visible(confirmation) && normalize(current.search.value) === activeQuery && !loading() && targetLinks(list).length === 0;
-      absentChecks = removed ? absentChecks + 1 : 0;
-      if (absentChecks >= 2) return { status: "follower_removed", detail: "Remoção confirmada: o @ deixou de aparecer na busca da sua lista de seguidores." };
+      if (!current || normalize(current.search.value) !== activeQuery || loading()) return "";
+      if (targetLinks(list).length === 0) return "O @ deixou de aparecer na busca da sua lista de seguidores.";
+      if (findTargetRow(list, ["removido", "removida", "removed"])) {
+        return "A linha do @ passou a indicar Removido/Removed.";
+      }
+      // Some layouts retain the profile link after removing only its Remove control.
+      if (visible(currentTarget.row) && list.contains(currentTarget.row) && targetLinks(currentTarget.row).length
+          && (!currentTarget.remove.isConnected || !visible(currentTarget.remove)) && !findTargetRow(list)
+          && !buttons(currentTarget.row).some((button) => button.disabled || button.getAttribute("aria-disabled") === "true")) {
+        return "O controle Remover desapareceu da linha do @ após a confirmação.";
+      }
+      return "";
+    };
+    const observeCompletion = async (attempts) => {
+      let lastEvidence = "";
+      let stableChecks = 0;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        const failure = verificationGuard();
+        if (failure) return failure;
+        const evidence = completionEvidence();
+        stableChecks = evidence && evidence === lastEvidence ? stableChecks + 1 : evidence ? 1 : 0;
+        lastEvidence = evidence;
+        if (stableChecks >= 2) return { status: "follower_removed", detail: `Remoção confirmada: ${evidence}` };
+        await pause(200);
+      }
+      return null;
+    };
+
+    // Most successful actions settle immediately; avoid the old 15-second wait.
+    const immediate = await observeCompletion(6);
+    if (immediate) return immediate;
+
+    // Refresh only the search once if its results are stale or the input was reset.
+    // No Remove or confirmation button is clicked a second time.
+    for (let attempt = 0; attempt < 12 && removalConfirmation(followerDialog() || list); attempt += 1) {
+      failure = verificationGuard();
+      if (failure) return failure;
+      await pause(200);
     }
-    return skipped("A lista de seguidores não confirmou a remoção; o próximo perfil será tentado.");
+    failure = verificationGuard();
+    if (failure) return failure;
+    if (removalConfirmation(followerDialog() || list)) return skipped("A confirmação de remoção continua aberta; não repeti a ação.");
+    if (!refreshSearch()) {
+      const opener = followersControl();
+      if (!opener) return skipped("A lista fechou após a confirmação e não consegui reabri-la para verificar a remoção.");
+      opener.click();
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        failure = verificationGuard();
+        if (failure) return failure;
+        if (refreshSearch()) break;
+        await pause(200);
+      }
+    }
+    if (!refreshSearch()) return skipped("A busca de seguidores não voltou após a confirmação; não consegui verificar a remoção.");
+    for (const query of ["", activeQuery]) {
+      const filled = await fillSearch(query);
+      if (filled.outcome) return filled.outcome;
+      if (!filled.ok) return skipped("Não consegui atualizar a busca após a confirmação; não repeti a remoção.");
+    }
+    const refreshed = await observeCompletion(20);
+    return refreshed || skipped("A busca atualizada ainda não confirmou a remoção; o próximo perfil será tentado sem repetir a ação.");
   })();
 }
 

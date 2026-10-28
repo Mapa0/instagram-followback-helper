@@ -36,11 +36,22 @@ async function fixture(options = {}) {
   await page.goto(`https://www.instagram.com/${options.wrongAccount ? "other_owner" : "owner"}/`);
   await page.evaluate((options) => {
     const timeout = window.setTimeout;
-    window.setTimeout = (fn, ms, ...args) => timeout(fn, Math.min(ms, 10), ...args);
+    window.waits = [];
+    window.setTimeout = (fn, ms, ...args) => {
+      window.waits.push(ms);
+      return timeout(fn, Math.min(ms, 10), ...args);
+    };
     window.clicks = [];
     window.inputEvents = [];
     const english = options.language === "en";
     const username = options.username || "_wendell.98";
+    let removedOnServer = false;
+    if (options.staleSuccessNotice) {
+      const notice = document.createElement("div");
+      notice.setAttribute("role", "status");
+      notice.innerText = "Seguidor removido";
+      document.body.append(notice);
+    }
     let list = document.createElement("div");
     if (!options.genericModal) list.setAttribute("role", "dialog");
     list.innerHTML = `<div><${options.genericModal ? "span" : "h2"}>${english ? "Followers" : "Seguidores"}</${options.genericModal ? "span" : "h2"}></div><input type="text" placeholder="${english ? "Search" : "Pesquisar"}"><div class="rows"></div>`;
@@ -67,8 +78,26 @@ async function fixture(options = {}) {
           confirm.innerHTML = `<h2>${options.wrongDialog ? "Remover foto?" : english ? "Remove follower?" : "Remover seguidor?"}</h2><p>${name}</p><button>${english ? "Remove" : "Remover"}</button>`;
           confirm.querySelector("button").onclick = () => {
             window.clicks.push(`confirm:${name}`);
+            window.removalWaitStart = window.waits.length;
             confirm.remove();
-            if (!options.noEffect) row.remove();
+            if (!options.noEffect) {
+              removedOnServer = true;
+              if (options.removedLabel) remove.innerText = english ? "Removed" : "Removido";
+              else if (options.removeControlGone) remove.remove();
+              else if (!options.staleRowUntilSearch && !options.successNotice) row.remove();
+              if (options.successNotice) {
+                const notice = document.createElement("div");
+                notice.setAttribute("role", "status");
+                notice.innerText = english ? "Follower removed" : "Seguidor removido";
+                document.body.append(notice);
+              }
+            }
+            if (options.resetSearchAfterRemoval) input.value = "";
+            if (options.replaceStaleSuccessNotice) {
+              const notice = document.querySelector("[role='status']");
+              notice.replaceWith(notice.cloneNode(true));
+            }
+            if (options.replacedConfirmationStillOpen) document.body.append(confirm.cloneNode(true));
             if (options.replaceListAfterRemoval) replaceList();
             if (options.closeList) list.remove();
             if (options.blockAfterConfirm) document.body.append(" Tente novamente mais tarde");
@@ -87,6 +116,7 @@ async function fixture(options = {}) {
     document.addEventListener("input", (event) => {
       if (event.target !== input) return;
       window.inputEvents.push(input.value);
+      if (options.staleRowUntilSearch && removedOnServer) list.querySelector(`[data-username='${username}']`)?.remove();
       if (options.resetSearchOnce && firstSearch) input.value = "";
       if (options.truncateFullQuery && input.value === username) input.value = username.replace(/\.[^.]+$/, "");
       if (options.replaceInputOnSearch) {
@@ -235,7 +265,7 @@ browserTest("a query changed during confirmation cannot authorize a removal", as
   } finally { await f.close(); }
 });
 
-for (const option of ["missingTarget", "missingTargetRemove", "wrongDialog", "noEffect", "closeList", "wrongAccount", "wrongAccountDuringConfirmation"]) {
+for (const option of ["missingTarget", "missingTargetRemove", "wrongDialog", "noEffect", "wrongAccount", "wrongAccountDuringConfirmation"]) {
   browserTest(`skips safely when ${option}`, async () => {
     const f = await fixture({ [option]: true });
     try {
@@ -243,6 +273,42 @@ for (const option of ["missingTarget", "missingTargetRemove", "wrongDialog", "no
       const clicks = await f.clicks();
       assert.equal(clicks.some((click) => click.includes(".extra")), false);
       if (!["noEffect", "closeList"].includes(option)) assert.equal(clicks.some((click) => click.startsWith("confirm:")), false);
+    } finally { await f.close(); }
+  });
+}
+
+for (const language of ["pt", "en"]) {
+  for (const option of ["removedLabel", "removeControlGone", "successNotice"]) {
+    browserTest(`recognizes successful removal while the profile row stays visible: ${option} (${language})`, async () => {
+      const f = await fixture({ [option]: true, language });
+      try {
+        assert.equal((await f.remove()).status, "follower_removed");
+        assert.deepEqual(await f.clicks(), ["followers-list", "row:_wendell.98", "confirm:_wendell.98"]);
+        assert.equal(await f.page.locator("[data-username='_wendell.98']").count(), 1);
+        assert.ok(await f.page.evaluate(() => window.waits.slice(window.removalWaitStart).reduce((sum, ms) => sum + ms, 0)) < 2000);
+      } finally { await f.close(); }
+    });
+  }
+}
+
+for (const option of ["staleRowUntilSearch", "resetSearchAfterRemoval", "closeList"]) {
+  browserTest(`refreshes the result after removal without clicking Remove again: ${option}`, async () => {
+    const f = await fixture({ [option]: true });
+    try {
+      assert.equal((await f.remove()).status, "follower_removed");
+      const clicks = await f.clicks();
+      assert.deepEqual(clicks.filter((click) => !click.startsWith("followers-list")), ["row:_wendell.98", "confirm:_wendell.98"]);
+      assert.ok(await f.page.evaluate(() => window.waits.slice(window.removalWaitStart).reduce((sum, ms) => sum + ms, 0)) < 6000);
+    } finally { await f.close(); }
+  });
+}
+
+for (const options of [{ noEffect: true, staleSuccessNotice: true }, { noEffect: true, staleSuccessNotice: true, replaceStaleSuccessNotice: true }, { noEffect: true, closeList: true }, { replacedConfirmationStillOpen: true }]) {
+  browserTest(`does not treat an old success message, closed list or replaced confirmation as proof: ${JSON.stringify(options)}`, async () => {
+    const f = await fixture(options);
+    try {
+      assert.equal((await f.remove()).status, "skipped");
+      assert.equal((await f.clicks()).filter((click) => click.startsWith("confirm:")).length, 1);
     } finally { await f.close(); }
   });
 }

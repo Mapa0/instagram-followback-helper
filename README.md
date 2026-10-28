@@ -9,7 +9,7 @@ Extensão local para o Chrome que compara as listas oficiais de **seguidores** e
 
 Não precisa de Python, Node.js, Selenium ou serviço pago para usar. O ZIP da release já contém a extensão; basta extrair e carregar no Chrome.
 
-**Novidades da [v1.1.3](https://github.com/Mapa0/instagram-followback-helper/releases/tag/v1.1.3):** remoção de seguidores que você não segue, identificação da conta logada e busca com conferência do @ completo. Se você usa a `1.0.4`, veja [como atualizar e habilitar o novo modo](#atualizar).
+**Novidades da [v1.1.4](https://github.com/Mapa0/instagram-followback-helper/releases/tag/v1.1.4):** confirmação mais rápida das remoções, inclusive quando o Instagram mantém o perfil visível na lista ou limpa a pesquisa. Os dois modos e a conferência do @ completo continuam disponíveis. Se você usa a `1.0.4`, veja [como atualizar e habilitar o novo modo](#atualizar).
 
 ## O que ela faz
 
@@ -127,7 +127,9 @@ Depois de comparar os arquivos nesta versão, você pode alternar entre as opç�
 
 Antes de iniciar esse modo, abra **seu próprio perfil** e confira a conta logada. A extensão identifica sua conta pelos controles **Perfil/Profile** ou **Editar perfil/Edit profile**. Se não conseguir identificá-la, pede que você abra seu perfil e inicie novamente.
 
-A cada candidato, a extensão verifica se você passou a seguir ou solicitou seguir o perfil. Em seguida, abre sua lista de **Seguidores**, pesquisa o usuário, clica em **Remover** na linha do @ completo e confirma a remoção. A ação só é registrada como confirmada quando o @ deixa de aparecer nos resultados.
+A cada candidato, a extensão verifica se você passou a seguir ou solicitou seguir o perfil. Em seguida, abre sua lista de **Seguidores**, pesquisa o usuário, clica em **Remover** na linha do @ completo e confirma a remoção.
+
+A confirmação reconhece o desaparecimento do @, a mudança da linha para **Removido/Removed**, o desaparecimento do controle **Remover** dessa linha ou um novo aviso de seguidor removido. O fechamento da confirmação, sozinho, não conta como sucesso. Se a busca ficar desatualizada, for limpa ou a lista fechar, a extensão tenta atualizá-la uma vez para verificar o resultado, **sem repetir a remoção**. Isso evita a espera de 15 segundos da versão anterior quando a interface já sinaliza o sucesso. O intervalo entre perfis continua seguindo sua configuração.
 
 A pesquisa pode tentar partes menores do nome quando a busca completa não retorna resultados, mas a seleção e a confirmação exigem o **@ completo**. Um nome parecido não é suficiente. Se o Instagram recriar a janela ou o campo durante a busca, a extensão tenta recuperá-los. Se não reconhecer a busca, o botão ou a confirmação, registra o candidato como pulado e segue a fila.
 
@@ -151,7 +153,7 @@ A pausa periódica substitui o intervalo comum naquele ponto da fila. O carregam
 | --- | --- |
 | `unfollowed` | A interface passou a mostrar **Seguir/Follow** depois da confirmação. |
 | `already_not_following` | O perfil já mostrava **Seguir/Follow** antes de qualquer ação. |
-| `follower_removed` | A remoção foi confirmada e o @ deixou de aparecer na busca da sua lista de seguidores. |
+| `follower_removed` | A interface confirmou a remoção por mudança na linha, aviso novo ou ausência do @ na busca. O campo `detail` registra o sinal identificado. |
 | `now_following` | Você segue o perfil ou solicitou segui-lo atualmente; o seguidor foi preservado e fica fora de uma nova fila de remoção. |
 | `skipped` | Página indisponível, botão não reconhecido, erro de carregamento ou ação sem confirmação visual. A fila segue adiante. |
 | `blocked` | Foi detectado captcha, desafio, pedido de login ou bloqueio. A execução para. |
@@ -175,6 +177,7 @@ Os registros `unfollowed` e `already_not_following` são incorporados ao progres
 | “Não consegui identificar sua conta” | Para remover seguidores, abra seu próprio perfil na aba do Instagram e inicie a execução por essa aba. Confira se aparece **Editar perfil/Edit profile**. |
 | A nova opção pede para comparar os arquivos novamente | Uma instalação anterior à `1.1.0` não salvava os candidatos à remoção. Baixe o CSV antigo e compare novamente todos os JSONs da mesma exportação para habilitar os dois modos. |
 | O seguidor não foi encontrado na busca | Veja o motivo no registro CSV. Confira o @ e a lista atual no Instagram; um perfil sem correspondência exata é pulado. |
+| O perfil foi removido, mas aparecia como “A lista de seguidores não confirmou a remoção” | Atualize para a `1.1.4`. A confirmação passa a reconhecer os outros sinais de sucesso e pode atualizar a busca. Registros antigos sem confirmação não são alterados automaticamente. |
 | “Esta página não está disponível” | A extensão reconhece a mensagem em português/inglês e pula o perfil automaticamente. |
 | Botão mudou ou não apareceu | O perfil é registrado como pulado. O Instagram pode ter mudado a interface; veja se existe uma release mais recente. |
 | Captcha, bloqueio ou verificação | A extensão interrompe a fila. Resolva a situação diretamente no Instagram e confira os registros antes de iniciar outra execução. Ela não tenta contornar essas telas. |
@@ -194,6 +197,8 @@ Os registros `unfollowed` e `already_not_following` são incorporados ao progres
 As versões anteriores à `1.1.0` guardavam somente a diferença usada para unfollows; por isso a lista de remoção precisa ser gerada em uma nova comparação. Enquanto você não comparar novamente, a lista e o progresso antigos de unfollow continuam disponíveis. Em comparações feitas na `1.1.0` ou posterior, os dois modos já ficam disponíveis sem nova importação.
 
 Carregar a extensão em outro caminho pode criar uma instalação separada. Remover a instalação antiga apaga os dados locais dela. O histórico de execução é substituído quando uma nova fila é iniciada; salve os CSVs que quiser manter.
+
+**Da `1.1.3` para a `1.1.4`:** basta substituir os arquivos na mesma pasta e recarregar a extensão. Não é necessário comparar os JSONs novamente. Isso mantém o progresso já confirmado; candidatos antigos que ficaram como pulados continuam pendentes. Se você já verificou que um deles foi removido, pode marcá-lo como concluído no popup para excluí-lo da fila.
 
 ## Privacidade e permissões
 

@@ -38,7 +38,7 @@ O ZIP contém uma pasta `instagram-followback-helper/` com os nove arquivos da e
 Para validar uma tag e escolher a pasta de saída:
 
 ```sh
-python scripts/build_release.py --tag v1.1.3 --output-dir dist
+python scripts/build_release.py --tag v1.1.4 --output-dir dist
 ```
 
 Uma tag incompatível com o manifesto interrompe o empacotamento. O checksum pode ser conferido com `sha256sum` no Linux/macOS ou `Get-FileHash -Algorithm SHA256` no PowerShell.

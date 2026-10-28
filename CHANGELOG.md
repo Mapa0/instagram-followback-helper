@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.4 — 2026-10-28
+
+- Corrigida a confirmação de remoções quando o Instagram mantém o perfil na lista, muda o controle para **Removido**, limpa a busca ou fecha a lista.
+- Confirmação por sinais visuais estáveis e novos avisos de sucesso, com verificações rápidas em vez da espera de 15 segundos quando a remoção já aparece na interface.
+- Atualização única da busca para conferir resultados desatualizados, sem repetir o clique de remoção.
+- Avisos antigos e confirmações recriadas que continuam abertas não são tratados como sucesso.
+- Testes de regressão no Chrome em português e inglês, incluindo falha real da ação, lista desatualizada e controle que desaparece sem remover a linha.
+
 ## 1.1.3 — 2026-10-28
 
 - Release pública que reúne os novos modos, a identificação da conta e as correções de remoção da [PR #1](https://github.com/Mapa0/instagram-followback-helper/pull/1), contribuição de [@wizard-moises-ximenes](https://github.com/wizard-moises-ximenes).
