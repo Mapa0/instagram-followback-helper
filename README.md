@@ -3,7 +3,7 @@
 [![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green.svg)](LICENSE)
 [![Baixar extensão](https://img.shields.io/github/v/release/Mapa0/instagram-followback-helper?label=baixar)](https://github.com/Mapa0/instagram-followback-helper/releases/latest)
 
-Extensão local para o Chrome que compara as listas oficiais de **seguidores** e **seguindo** exportadas pelo Instagram e automatiza os unfollows de quem não aparece na lista de seguidores.
+Extensão local para o Chrome que compara as listas oficiais de **seguidores** e **seguindo** exportadas pelo Instagram. Você pode deixar de seguir quem não segue de volta ou remover os seguidores que você não segue, usando os mesmos arquivos da Meta.
 
 **[Baixar a extensão pronta na última release](https://github.com/Mapa0/instagram-followback-helper/releases/latest)** · [Exportar os dados da Meta](#1-exportar-os-dados-da-meta) · [Instalar](#2-instalar-a-extensão) · [Usar](#3-importar-as-listas-e-executar)
 
@@ -11,15 +11,17 @@ Não precisa de Python, Node.js, Selenium ou serviço pago para usar. O ZIP da r
 
 ## O que ela faz
 
-- Calcula `seguindo − seguidores` usando os arquivos JSON da sua conta.
+- Calcula `seguindo − seguidores` para unfollows e `seguidores − seguindo` para remover seguidores usando os mesmos arquivos JSON da sua conta.
 - Aceita vários arquivos `followers_*.json` da mesma exportação e elimina duplicados.
 - Lista os candidatos com busca, links, cópia da lista e exportação CSV.
 - Visita cada perfil, identifica **Seguindo/Following**, clica e confirma **Deixar de seguir/Unfollow**.
+- Na opção **Remover seguidores que não sigo**, verifica o perfil e depois busca o @ exato na sua própria lista de **Seguidores**, clica em **Remover/Remove** e confirma. Preserva quem você passou a seguir ou solicitou seguir.
+- Mantém listas, progresso e arquivos CSV separados por opção.
 - Permite configurar o intervalo entre perfis e as pausas periódicas.
 - Pula páginas indisponíveis e registra os resultados em CSV.
 - Guarda listas, progresso e preferências no armazenamento local da extensão.
 
-**Ao clicar em “Iniciar automação”, os unfollows são reais e não há confirmação individual por perfil.** Confira a conta logada e os candidatos antes de iniciar. Para manter alguém na sua lista de seguindo, marque a caixa ao lado do nome como concluído antes de executar: os nomes marcados ficam fora da fila.
+**Ao clicar em “Deixar de seguir — N perfis” ou “Remover seguidores — N perfis”, as ações são reais e não há confirmação individual por perfil na extensão.** Confira a conta logada, a opção e os candidatos antes de iniciar. Para preservar alguém, marque a caixa ao lado do nome como concluído antes de executar: os nomes marcados ficam fora da fila da opção selecionada.
 
 > A lista de candidatos reflete a data da exportação. A extensão confere se você ainda segue o perfil antes de clicar, mas não consulta em tempo real se a pessoa começou a seguir você depois. Use uma exportação recente e completa. A detecção de bloqueios e erros depende dos textos visíveis na página; mudanças no Instagram podem exigir atualização da extensão.
 
@@ -99,11 +101,20 @@ O pacote pronto é uma extensão sem compactação para carregar nesse modo. Nã
 2. Com essa aba selecionada, clique no ícone da extensão.
 3. Em **Seguidores**, selecione todos os arquivos `followers_*.json`.
 4. Em **Seguindo**, selecione `following.json` e clique em **Comparar listas**.
-5. Confira os números, busque os nomes que quiser e marque como concluídos os perfis que deseja excluir da execução. Você também pode baixar o CSV antes de agir.
-6. Ajuste os intervalos, se necessário.
-7. Com a aba do Instagram ativa, abra a extensão novamente e clique em **Iniciar automação — N perfis**.
-8. A extensão abre uma aba de progresso e usa a aba do Instagram para visitar os perfis. **Mantenha as duas abertas** e não navegue manualmente na aba usada pela execução.
-9. Acompanhe os resultados. Para interromper, use **Parar após o perfil atual**. Ao terminar, clique em **Baixar registro CSV** para guardar o histórico.
+5. Em **O que você quer fazer?**, selecione **Deixar de seguir quem não me segue** ou **Remover seguidores que não sigo**. A segunda opção lista quem aparece em `followers_*.json` e não em `following.json`; não precisa baixar outros arquivos.
+6. Confira os números, busque os nomes que quiser e marque como concluídos os perfis que deseja excluir da execução. Você também pode baixar o CSV antes de agir.
+7. Ajuste os intervalos, se necessário.
+8. Com a aba do Instagram ativa, abra a extensão novamente e clique em **Deixar de seguir — N perfis** ou **Remover seguidores — N perfis**, conforme a opção selecionada. Para remover seguidores, abra seu próprio perfil antes de iniciar; a extensão identifica sua conta pelo link **Perfil** ou pelo botão **Editar perfil**.
+9. A extensão abre uma aba de progresso e usa a aba do Instagram para visitar os perfis. **Mantenha as duas abertas** e não navegue manualmente na aba usada pela execução.
+10. Acompanhe os resultados. Para interromper, use **Parar após o perfil atual**. Ao terminar, clique em **Baixar registro CSV** para guardar o histórico.
+
+Ao atualizar de uma versão anterior à 1.1.0, compare novamente os mesmos arquivos já baixados da Meta para habilitar a lista de remoção. As versões anteriores guardavam somente os candidatos a unfollow, por isso não é possível reconstruir a lista inversa apenas com o resultado salvo. Nas comparações novas, você pode alternar entre as opções sem reimportar. Durante uma execução, a seleção da opção e a importação ficam desabilitadas.
+
+Na remoção, a extensão primeiro confere que você não segue o perfil. Depois abre seu próprio perfil, entra em **Seguidores**, pesquisa o @ e usa apenas o botão **Remover** da linha desse usuário. Confere a confirmação de **Remover seguidor** e verifica se o @ desapareceu dos resultados. Se a busca, o botão ou a confirmação não forem reconhecidos, o perfil é registrado como pulado. O menu de três pontos do perfil de outra pessoa não é usado nesse fluxo.
+
+O contador **Seguidores** pode aparecer como link, botão ou texto em um `span`. A lista pode abrir em um modal suspenso, mantendo o endereço do seu perfil. A extensão reconhece esses formatos e reutiliza o modal se ele já estiver aberto.
+
+Se a pesquisa pelo @ completo não encontrar o perfil, a extensão tenta termos mais curtos. Por exemplo, procura `51_joao.93` e depois `51_joao`. O @ usado para escolher o botão **Remover** continua sendo o completo; um nome parecido não é suficiente. A extensão também reencontra o modal e o campo quando o Instagram os recria durante a pesquisa e tenta preencher novamente o texto se ele for perdido.
 
 Fechar o popup da extensão não interrompe a fila. Fechar a aba de progresso interrompe a execução. A extensão não oferece retomada automática da fila após reiniciar o navegador; os registros salvos ajudam a revisar o que ocorreu.
 
@@ -125,12 +136,14 @@ A pausa periódica substitui o intervalo comum naquele ponto da fila. O carregam
 | --- | --- |
 | `unfollowed` | A interface passou a mostrar **Seguir/Follow** depois da confirmação. |
 | `already_not_following` | O perfil já mostrava **Seguir/Follow** antes de qualquer ação. |
+| `follower_removed` | A remoção foi confirmada e o @ deixou de aparecer na busca da sua lista de seguidores. |
+| `now_following` | Você segue o perfil ou solicitou segui-lo atualmente; o seguidor foi preservado e fica fora de uma nova fila de remoção. |
 | `skipped` | Página indisponível, botão não reconhecido, erro de carregamento ou ação sem confirmação visual. A fila segue adiante. |
 | `blocked` | Foi detectado captcha, desafio, pedido de login ou bloqueio. A execução para. |
 
 O CSV de execução inclui `username`, `status`, `detail` e `timestamp`. O CSV do popup lista os candidatos com `username`, `profile_url` e `status` de progresso; são relatórios diferentes.
 
-Ao reabrir o popup após a execução, os registros `unfollowed` e `already_not_following` são incorporados ao progresso e ficam fora de uma nova fila. Perfis `skipped` continuam pendentes e podem ser tentados novamente. Marcar uma caixa manualmente só altera o progresso local. **Zerar progresso** remove essas marcações; não reverte unfollows. Importar e comparar novamente também inicia um novo progresso.
+Os registros `unfollowed` e `already_not_following` são incorporados ao progresso de unfollows; `follower_removed` e `now_following`, ao de remoção. O progresso é salvo mesmo com o popup fechado. Perfis `skipped` continuam pendentes e podem ser tentados novamente. Marcar uma caixa manualmente só altera o progresso local. **Zerar progresso** limpa somente a opção selecionada; não reverte as ações no Instagram. Importar e comparar novamente inicia um novo progresso para as duas opções. Baixe o registro de execução antes de iniciar outra fila, pois ele é substituído pela próxima execução.
 
 ## Solução de problemas
 
@@ -172,13 +185,14 @@ O código é JavaScript, HTML e CSS, sem dependências externas em tempo de exec
 ```text
 extension/            # Pasta que pode ser carregada diretamente no Chrome
   manifest.json       # Metadados e permissões
+  modes.js            # Opções de ação e progresso separado
   popup.*             # Importação, comparação, ajustes e lista de candidatos
   service_worker.js   # Inicialização da execução e controle das abas
   runner.*            # Fila, cliques e registro
 scripts/
   build_release.py    # Empacotamento reproduzível e checksum SHA-256
 tests/
-  import.test.cjs     # Verificação da leitura e comparação com dados fictícios
+  *.test.cjs          # Importação, opções, progresso, fila e interface simulada
 ```
 
 Para desenvolver, clone o projeto e carregue a pasta **`extension/`** em `chrome://extensions`. Veja [CONTRIBUTING.md](CONTRIBUTING.md) para validação e empacotamento. A [lista de mudanças](CHANGELOG.md) registra as versões.

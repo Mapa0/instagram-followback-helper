@@ -7,13 +7,16 @@ O projeto usa JavaScript, HTML e CSS sem dependências externas. Para desenvolve
 Use Node.js 18 ou superior para os testes e a checagem de sintaxe:
 
 ```sh
-node --test tests/import.test.cjs
+node --test
+node --check extension/modes.js
 node --check extension/popup.js
 node --check extension/runner.js
 node --check extension/service_worker.js
 ```
 
-Os testes de importação usam somente dados fictícios e não fazem acesso ao Instagram. Cliques, seletores e respostas da interface precisam ser verificados manualmente; mudanças no site podem afetar a automação. Para verificar a importação sem executar unfollows, carregue a extensão, compare arquivos de exemplo e não clique em **Iniciar automação**.
+Os testes usam somente dados fictícios, armazenamento e DOM simulados, sem acessar o Instagram. Cobrem as duas diferenças de conjuntos, migração e separação do progresso, seleção da fila e cliques nas duas ações em português e inglês. Cliques, seletores e respostas da interface real precisam ser verificados manualmente; mudanças no site podem afetar a automação. Para verificar a importação sem executar ações, carregue a extensão, compare arquivos de exemplo e alterne entre as opções sem clicar em **Deixar de seguir** ou **Remover seguidores**.
+
+Os testes `followers.browser.test.cjs` usam Playwright como dependência opcional de desenvolvimento e Chrome instalado. Se o módulo estiver disponível, `node --test` também verifica a busca e a remoção em páginas fictícias com DOM real. Todas as requisições dessas páginas são interceptadas; nenhuma conta do Instagram é acessada. Sem Playwright, esses testes são indicados como pulados. Para habilitá-los, instale `playwright` no ambiente de desenvolvimento ou exponha sua instalação pelo `NODE_PATH`. A extensão e os outros testes continuam sem dependências.
 
 ## Gerar o pacote
 
@@ -30,12 +33,12 @@ instagram-followback-helper-vX.Y.Z.zip
 SHA256SUMS.txt
 ```
 
-O ZIP contém uma pasta `instagram-followback-helper/` com os oito arquivos da extensão, o README, a licença, o changelog e este guia. O empacotamento usa uma lista explícita de arquivos e metadados fixos para evitar incluir dados de usuários e permitir repetir o mesmo SHA-256 em diferentes ambientes.
+O ZIP contém uma pasta `instagram-followback-helper/` com os nove arquivos da extensão, o README, a licença, o changelog e este guia. O empacotamento usa uma lista explícita de arquivos e metadados fixos para evitar incluir dados de usuários e permitir repetir o mesmo SHA-256 em diferentes ambientes.
 
 Para validar uma tag e escolher a pasta de saída:
 
 ```sh
-python scripts/build_release.py --tag v1.0.4 --output-dir dist
+python scripts/build_release.py --tag v1.1.3 --output-dir dist
 ```
 
 Uma tag incompatível com o manifesto interrompe o empacotamento. O checksum pode ser conferido com `sha256sum` no Linux/macOS ou `Get-FileHash -Algorithm SHA256` no PowerShell.
