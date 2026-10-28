@@ -11,6 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_FILES = (
     "manifest.json",
+    "modes.js",
     "popup.html",
     "popup.css",
     "popup.js",

@@ -12,10 +12,37 @@ const automationStatus = document.getElementById("automation-status");
 const intervalInput = document.getElementById("interval-seconds");
 const restEveryInput = document.getElementById("rest-every");
 const restSecondsInput = document.getElementById("rest-seconds");
+const modeInput = document.getElementById("automation-mode");
 const DEFAULT_SETTINGS = { intervalSeconds: 15, restEvery: 25, restSeconds: 120 };
 
 let currentData = null;
 let currentAutomation = null;
+let selectedMode = "unfollow";
+let progressByMode = { unfollow: [], remove_follower: [] };
+
+function activeCandidates() {
+  return FollowbackModes.candidates(currentData, selectedMode);
+}
+
+function activeDone() {
+  return progressByMode[selectedMode] || [];
+}
+
+async function saveProgress(done) {
+  progressByMode[selectedMode] = done;
+  if (currentAutomation?.startedAt && FollowbackModes.normalize(currentAutomation.mode) === selectedMode) {
+    progressByMode.ignoredRuns = { ...progressByMode.ignoredRuns, [selectedMode]: currentAutomation.startedAt };
+  }
+  await chrome.storage.local.set({ progressByMode });
+}
+
+function renderMode() {
+  const mode = FollowbackModes.info(selectedMode);
+  modeInput.value = selectedMode;
+  document.getElementById("automation-title").textContent = mode.heading;
+  document.getElementById("automation-copy").textContent = mode.copy;
+  document.getElementById("reimport-note").hidden = selectedMode !== "remove_follower" || Array.isArray(currentData?.removalCandidates);
+}
 
 function cleanUsername(value) {
   if (typeof value !== "string") return "";
@@ -56,6 +83,14 @@ function extractRows(followersJson, followingJson) {
   return { followers, following };
 }
 
+function compareLists(followers, following) {
+  const sortedDifference = (left, right) => [...left].filter((name) => !right.has(name)).sort((a, b) => a.localeCompare(b));
+  return {
+    candidates: sortedDifference(following, followers),
+    removalCandidates: sortedDifference(followers, following),
+  };
+}
+
 function readJson(file) {
   return file.text().then((text) => JSON.parse(text));
 }
@@ -69,7 +104,7 @@ async function readFollowersFiles(files) {
 }
 
 function updateCompareState() {
-  compareButton.disabled = !(followersInput.files.length && followingInput.files.length);
+  compareButton.disabled = currentAutomation?.status === "running" || !(followersInput.files.length && followingInput.files.length);
 }
 
 function normalizeSettings(raw = {}) {
@@ -117,12 +152,12 @@ function setMessage(text, isError = true) {
 }
 
 function showStats() {
-  const done = new Set(currentData.done || []);
+  const done = new Set(activeDone());
   stats.innerHTML = "";
   [
     [currentData.followersCount, "seguidores"],
     [currentData.followingCount, "seguindo"],
-    [currentData.candidates.length, "não seguem de volta"],
+    [activeCandidates().length, FollowbackModes.info(selectedMode).candidatesLabel],
   ].forEach(([value, label]) => {
     const card = document.createElement("div");
     card.className = "stat";
@@ -138,15 +173,21 @@ function showStats() {
 }
 
 function updateRunButton() {
-  const done = new Set(currentData?.done || []);
-  const count = currentData?.candidates.filter((name) => !done.has(name)).length || 0;
-  startRunButton.textContent = count ? `Iniciar automação — ${count} perfil(is)` : "Nenhum perfil pendente";
+  const done = new Set(activeDone());
+  const count = activeCandidates().filter((name) => !done.has(name)).length;
+  startRunButton.textContent = count ? `${FollowbackModes.info(selectedMode).actionLabel} — ${count} perfil(is)` : "Nenhum perfil pendente";
   startRunButton.disabled = !count || currentAutomation?.status === "running";
 }
 
 function renderAutomation(state) {
   currentAutomation = state || null;
-  if (state?.status === "running" && state.settings) renderSettings(state.settings);
+  renderSettings(state?.status === "running" && state.settings ? state.settings : settingsFromInputs());
+  const running = state?.status === "running";
+  modeInput.disabled = running;
+  followersInput.disabled = running;
+  followingInput.disabled = running;
+  document.getElementById("reset").disabled = running;
+  updateCompareState();
   syncAutomationProgress(state);
   if (!state) {
     automationStatus.textContent = "Abra o Instagram em uma aba e deixe a conta logada antes de iniciar.";
@@ -157,10 +198,11 @@ function renderAutomation(state) {
   const total = Number(state.queue?.length || 0);
   const confirmed = Number(state.confirmed || 0);
   const skipped = Number(state.skipped || 0);
+  const mode = FollowbackModes.info(state.mode);
   if (state.status === "running") {
-    automationStatus.textContent = `Em andamento: ${done}/${total} verificados; ${confirmed} unfollow(s) confirmado(s), ${skipped} pulado(s). Acompanhe na aba da automação.`;
+    automationStatus.textContent = `${mode.title}. Em andamento: ${done}/${total} verificados; ${confirmed} ${mode.confirmedLabel}, ${skipped} pulado(s). Acompanhe na aba da automação.`;
   } else if (state.status === "completed") {
-    automationStatus.textContent = `Concluído: ${confirmed} unfollow(s) confirmado(s), ${skipped} pulado(s) de ${total} candidatos.`;
+    automationStatus.textContent = `${mode.title}. Concluído: ${confirmed} ${mode.confirmedLabel}, ${skipped} pulado(s) de ${total} candidatos.`;
   } else if (state.status === "stopped") {
     automationStatus.textContent = `Parou após ${done}/${total}: ${state.stopReason || "interrompido"}. Confirmados: ${confirmed}.`;
   } else {
@@ -171,22 +213,19 @@ function renderAutomation(state) {
 
 function syncAutomationProgress(state) {
   if (!currentData || !Array.isArray(state?.log)) return;
-  const done = new Set(currentData.done || []);
-  for (const entry of state.log) {
-    if (["unfollowed", "already_not_following"].includes(entry.status)) done.add(entry.username);
-  }
-  if (done.size === (currentData.done || []).length) return;
-  currentData.done = [...done];
-  chrome.storage.local.set({ progress: currentData.done });
+  const merged = FollowbackModes.mergeProgress({ dataset: currentData, progressByMode }, state);
+  if (JSON.stringify(merged) === JSON.stringify(progressByMode)) return;
+  progressByMode = merged;
+  chrome.storage.local.set({ progressByMode });
   showStats();
   renderUsers();
 }
 
 function renderUsers() {
   if (!currentData) return;
-  const done = new Set(currentData.done || []);
+  const done = new Set(activeDone());
   const query = searchInput.value.trim().replace(/^@/, "").toLowerCase();
-  const visible = currentData.candidates.filter((name) => !query || name.includes(query));
+  const visible = activeCandidates().filter((name) => !query || name.includes(query));
   usersList.replaceChildren();
 
   if (!visible.length) {
@@ -203,13 +242,13 @@ function renderUsers() {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = done.has(username);
+    checkbox.disabled = currentAutomation?.status === "running";
     checkbox.setAttribute("aria-label", `Marcar @${username} como concluído`);
     checkbox.addEventListener("change", async () => {
       const scrollTop = usersList.scrollTop;
-      const updated = new Set(currentData.done || []);
+      const updated = new Set(activeDone());
       checkbox.checked ? updated.add(username) : updated.delete(username);
-      currentData.done = [...updated];
-      await chrome.storage.local.set({ progress: currentData.done });
+      await saveProgress([...updated]);
       showStats();
       renderUsers();
       usersList.scrollTop = scrollTop;
@@ -236,13 +275,15 @@ function renderUsers() {
 }
 
 async function loadSavedData() {
-  const saved = await chrome.storage.local.get(["dataset", "progress", "automation", "automationSettings"]);
+  const saved = await chrome.storage.local.get(["dataset", "progress", "progressByMode", "automationMode", "automation", "automationSettings"]);
+  selectedMode = FollowbackModes.normalize(saved.automation?.status === "running" ? saved.automation.mode : saved.automationMode);
+  progressByMode = FollowbackModes.mergeProgress(saved, saved.automation);
   renderSettings(saved.automationSettings);
   renderAutomation(saved.automation);
   if (!saved.dataset) return;
   currentData = saved.dataset;
-  currentData.done = Array.isArray(saved.progress) ? saved.progress : [];
   results.hidden = false;
+  renderMode();
   syncAutomationProgress(saved.automation);
   showStats();
   renderUsers();
@@ -251,15 +292,29 @@ async function loadSavedData() {
 followersInput.addEventListener("change", updateCompareState);
 followingInput.addEventListener("change", updateCompareState);
 searchInput.addEventListener("input", renderUsers);
+modeInput.addEventListener("change", async () => {
+  if (currentAutomation?.status === "running") return;
+  selectedMode = FollowbackModes.normalize(modeInput.value);
+  searchInput.value = "";
+  await chrome.storage.local.set({ automationMode: selectedMode });
+  renderMode();
+  showStats();
+  renderUsers();
+  setMessage("", false);
+});
 for (const input of [intervalInput, restEveryInput, restSecondsInput]) {
   input.addEventListener("change", () => { saveSettings(); });
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.automation) renderAutomation(changes.automation.newValue);
+  if (area !== "local") return;
+  if (changes.progressByMode) progressByMode = changes.progressByMode.newValue || { unfollow: [], remove_follower: [] };
+  if (changes.automation) renderAutomation(changes.automation.newValue);
+  if (currentData) { showStats(); renderUsers(); }
 });
 
 compareButton.addEventListener("click", async () => {
+  if (currentAutomation?.status === "running") return;
   setMessage("Lendo os arquivos…", false);
   try {
     const [followersJson, followingJson] = await Promise.all([
@@ -267,19 +322,20 @@ compareButton.addEventListener("click", async () => {
       readJson(followingInput.files[0]),
     ]);
     const { followers, following } = extractRows(followersJson, followingJson);
-    const candidates = [...following].filter((name) => !followers.has(name)).sort((a, b) => a.localeCompare(b));
+    const lists = compareLists(followers, following);
     currentData = {
       followersCount: followers.size,
       followingCount: following.size,
-      candidates,
-      done: [],
+      ...lists,
       importedAt: new Date().toISOString(),
     };
-    await chrome.storage.local.set({ dataset: currentData, progress: [] });
+    progressByMode = { unfollow: [], remove_follower: [] };
+    await chrome.storage.local.set({ dataset: currentData, progress: [], progressByMode });
     results.hidden = false;
+    renderMode();
     showStats();
     renderUsers();
-    setMessage(`Comparação concluída: ${candidates.length.toLocaleString("pt-BR")} perfil(is) na lista.`, false);
+    setMessage(`Comparação concluída: ${activeCandidates().length.toLocaleString("pt-BR")} perfil(is) na opção selecionada.`, false);
     updateRunButton();
   } catch (error) {
     setMessage(error instanceof Error ? error.message : "Não consegui ler os arquivos.");
@@ -287,8 +343,8 @@ compareButton.addEventListener("click", async () => {
 });
 
 startRunButton.addEventListener("click", async () => {
-  const done = new Set(currentData?.done || []);
-  const pending = currentData?.candidates.filter((name) => !done.has(name)) || [];
+  const done = new Set(activeDone());
+  const pending = activeCandidates().filter((name) => !done.has(name));
   if (!pending.length) return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !/^https:\/\/www\.instagram\.com\//i.test(tab.url || "")) {
@@ -302,6 +358,7 @@ startRunButton.addEventListener("click", async () => {
     const response = await chrome.runtime.sendMessage({
       type: "startAutomation",
       tabId: tab.id,
+      mode: selectedMode,
       settings,
     });
     if (!response?.ok) {
@@ -318,8 +375,8 @@ startRunButton.addEventListener("click", async () => {
 
 document.getElementById("copy").addEventListener("click", async () => {
   if (!currentData) return;
-  const done = new Set(currentData.done || []);
-  const pending = currentData.candidates.filter((name) => !done.has(name)).map((name) => `@${name}`).join("\n");
+  const done = new Set(activeDone());
+  const pending = activeCandidates().filter((name) => !done.has(name)).map((name) => `@${name}`).join("\n");
   try {
     await navigator.clipboard.writeText(pending);
     setMessage("Lista pendente copiada.", false);
@@ -330,8 +387,8 @@ document.getElementById("copy").addEventListener("click", async () => {
 
 document.getElementById("csv").addEventListener("click", () => {
   if (!currentData) return;
-  const done = new Set(currentData.done || []);
-  const rows = [["username", "profile_url", "status"], ...currentData.candidates.map((name) => [
+  const done = new Set(activeDone());
+  const rows = [["username", "profile_url", "status"], ...activeCandidates().map((name) => [
     name,
     `https://www.instagram.com/${name}/`,
     done.has(name) ? "concluido" : "pendente",
@@ -341,18 +398,18 @@ document.getElementById("csv").addEventListener("click", () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "instagram-nao-seguem-de-volta.csv";
+  link.download = FollowbackModes.info(selectedMode).csv;
   link.click();
   URL.revokeObjectURL(url);
 });
 
 document.getElementById("reset").addEventListener("click", async () => {
   if (!currentData) return;
-  currentData.done = [];
-  await chrome.storage.local.set({ progress: [] });
+  if (currentAutomation?.status === "running") return;
+  await saveProgress([]);
   showStats();
   renderUsers();
-  setMessage("Progresso zerado.", false);
+  setMessage("Progresso da opção selecionada zerado.", false);
 });
 
 loadSavedData();

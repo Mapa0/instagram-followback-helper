@@ -10,7 +10,7 @@
   <main>
     <header>
       <div class="eyebrow">FERRAMENTA LOCAL</div>
-      <h1>Quem não segue de volta</h1>
+      <h1>Gerenciar seguidores e seguindo</h1>
       <p class="intro">Compare os arquivos da sua exportação e abra os perfis que quiser revisar.</p>
     </header>
 
@@ -25,6 +25,13 @@
     </section>
 
     <section id="results" hidden>
+      <label for="automation-mode">O que você quer fazer?</label>
+      <select id="automation-mode" aria-describedby="mode-note">
+        <option value="unfollow">Deixar de seguir quem não me segue</option>
+        <option value="remove_follower">Remover seguidores que não sigo</option>
+      </select>
+      <p id="mode-note" class="snapshot-note">As duas opções usam os mesmos arquivos da Meta. Cada opção tem sua própria lista e progresso.</p>
+      <p id="reimport-note" class="snapshot-note" hidden>Compare novamente os mesmos arquivos da Meta para habilitar a remoção de seguidores nesta versão.</p>
       <div id="stats" class="stats"></div>
       <p class="snapshot-note">A exportação é uma fotografia do momento em que foi criada. Confira o estado no Instagram antes de agir.</p>
       <section class="automation-card" aria-labelledby="automation-title">
@@ -38,7 +45,7 @@
           <input id="rest-seconds" type="number" min="0" max="3600" step="1" value="120">
         </div>
         <p class="settings-note">Padrão: 15 s entre perfis e pausa de 120 s a cada 25. Intervalos menores podem levar a bloqueio ou captcha; nesses casos, a fila para.</p>
-        <p class="automation-copy">Com o Instagram aberto e logado em outra aba, a extensão visita cada perfil da diferença e confirma “Deixar de seguir” automaticamente.</p>
+        <p id="automation-copy" class="automation-copy">A extensão visita cada perfil da lista e confirma a ação selecionada automaticamente.</p>
         <button id="start-run" class="danger" disabled>Iniciar automação</button>
         <p id="automation-status" class="automation-status" role="status" aria-live="polite"></p>
       </section>
@@ -56,6 +63,7 @@
 
     <footer>A extensão usa os arquivos locais e cliques normais na página do Instagram. Ela pula perfis com tela inesperada e para somente se detectar captcha, bloqueio ou pedido de login.</footer>
   </main>
+  <script src="modes.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
