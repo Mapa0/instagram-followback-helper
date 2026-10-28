@@ -1,7 +1,9 @@
 # Changelog
 
-## 1.1.3 — 2026-10-27
+## 1.1.3 — 2026-10-28
 
+- Release pública que reúne os novos modos, a identificação da conta e as correções de remoção da [PR #1](https://github.com/Mapa0/instagram-followback-helper/pull/1), contribuição de [@wizard-moises-ximenes](https://github.com/wizard-moises-ximenes).
+- README atualizado com a comparação dos dois modos, os arquivos CSV de cada ação, a identificação da conta e o guia de migração da `1.0.4`.
 - Corrigida a busca que era interrompida quando o Instagram recriava o modal ou o campo de pesquisa.
 - O campo e o modal são localizados novamente durante a busca e a confirmação; texto rejeitado é preenchido novamente com tentativas limitadas e entrada incremental.
 - Busca primeiro pelo @ completo e, se necessário, por termos mais curtos, incluindo nomes sem o sufixo numérico. A remoção exige sempre o @ completo no resultado, mesmo quando a pesquisa é abreviada.
